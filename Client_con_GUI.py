@@ -6,7 +6,7 @@ import threading
 server_address = ('127.0.0.1', 12345)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client_socket.sendto(b'Ciao, mi voglio connettere', server_address)
-simbolo = client_socket.recv(4096).decode()[-1]  # Prende 'X' o 'O'
+simbolo = client_socket.recv(4096).decode()[-1]
 
 # GUI Setup
 root = tk.Tk()
@@ -17,7 +17,7 @@ status_label.pack(pady=10)
 button_frame = tk.Frame(root)
 button_frame.pack()
 
-turno_mio = False  # se è il mio turno
+turno_mio = False
 
 def invia_mossa(r, c):
     global turno_mio
@@ -51,20 +51,19 @@ def ricevi():
             elif msg == "ATTENDI":
                 status_label.config(text="Aspetta l'altro giocatore...")
             elif msg.startswith("Mossa"):
-                # Mossa X in 0,1
+
                 simbolo_mossa = msg.split()[1]
                 coords = msg.split()[-1]
                 r, c = map(int, coords.split(','))
                 buttons[r][c].config(text=simbolo_mossa)
             elif "|" in msg or "-" in msg:
-                pass  # È la griglia, già aggiorniamo con le mosse
+                pass
             elif msg.startswith("VITTORIA") or msg == "Pareggio!":
                 status_label.config(text=msg)
                 break
         except:
             break
 
-# Thread separato per ricevere dati
 threading.Thread(target=ricevi, daemon=True).start()
 
 root.mainloop()
