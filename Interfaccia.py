@@ -1,20 +1,31 @@
 import tkinter as tk
-from tkinter import *
 from tkinter import messagebox
 
-
 root = tk.Tk()
-
-root.geometry("300x350")
+root.geometry("300x400")
 root.title("Tris game")
-label = tk.Label(root, text="Giochiamo a tris!", font=("Arial", 20))
-label.pack(padx=10, pady=10)
 
-canvas = Canvas(root, width=600, height=500, bg="white")
-linea_verticale1 = canvas.create_line(105,230,105,40, width=7, fill="black")
-linea_verticale2 = canvas.create_line(175,230,175,40, width=7, fill="black")
-linea_orizzontale1 = canvas.create_line(50,100,230,100, width=7, fill="black")
-linea_orizzontale2 = canvas.create_line(50,170,230,170, width=7, fill="black")
-canvas.pack()
+# Etichetta in alto
+label = tk.Label(root, text="Giochiamo a tris!", font=("Arial", 20))
+label.pack(pady=10)
+
+# Contenitore per i bottoni
+button_frame = tk.Frame(root)
+button_frame.pack()
+
+def on_click(row, col):
+    print(f"Hai cliccato sulla cella {row},{col}")
+    if buttons[row][col]['text'] == '':
+        buttons[row][col].config(text='X')
+
+buttons = []
+for i in range(3):
+    row = []
+    for j in range(3):
+        btn = tk.Button(button_frame, text='', font=('Arial', 20), width=5, height=2,
+                        command=lambda r=i, c=j: on_click(r, c))
+        btn.grid(row=i, column=j, padx=2, pady=2)
+        row.append(btn)
+    buttons.append(row)
 
 root.mainloop()
