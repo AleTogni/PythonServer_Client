@@ -3,7 +3,7 @@ import socket
 import threading
 
 # Connessione al server
-server_address = ('127.0.0.1', 12345)  # 127.0.0.1
+server_address = ('192.168.132.220', 12345) # 127.0.0.1
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client_socket.sendto(b'Ciao, mi voglio connettere', server_address)
 simbolo = client_socket.recv(4096).decode()[-1]
@@ -19,6 +19,7 @@ button_frame.pack()
 
 turno_mio = False
 
+
 def invia_mossa(r, c):
     global turno_mio
     if not turno_mio:
@@ -26,6 +27,7 @@ def invia_mossa(r, c):
     if buttons[r][c]['text'] == '':
         client_socket.sendto(f"{r},{c}".encode(), server_address)
         turno_mio = False
+
 
 buttons = []
 for i in range(3):
@@ -36,6 +38,7 @@ for i in range(3):
         btn.grid(row=i, column=j, padx=5, pady=5)
         row.append(btn)
     buttons.append(row)
+
 
 def ricevi():
     global turno_mio
@@ -63,6 +66,7 @@ def ricevi():
                 break
         except:
             break
+
 
 threading.Thread(target=ricevi, daemon=True).start()
 
