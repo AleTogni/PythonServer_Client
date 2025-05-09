@@ -1,18 +1,24 @@
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, simpledialog
 import socket
 import threading
+
+# Finestra per il nome
+root = tk.Tk()
+root.withdraw()
+nome_utente = simpledialog.askstring("Nome Utente", "Inserisci il tuo nome:")
+if not nome_utente:
+    exit()
+root.deiconify()
 
 # Connessione
 server_address = ('127.0.0.1', 12345)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client_socket.sendto(b'Ciao, mi voglio connettere', server_address)
+client_socket.sendto(f"NOME:{nome_utente}".encode(), server_address)
 simbolo = client_socket.recv(4096).decode()[-1]
 
 # GUI
-root = tk.Tk()
-root.title(f"Tris - Giocatore {simbolo}")
-
+root.title(f"Tris - {nome_utente} ({simbolo})")
 main_frame = tk.Frame(root)
 main_frame.pack(padx=10, pady=10)
 
@@ -59,7 +65,7 @@ chat_entry.pack()
 def invia_chat(event=None):
     msg = chat_entry.get()
     if msg:
-        client_socket.sendto(f"CHAT:{msg}".encode(), server_address)
+        client_socket.sendto(f"CHAT:{nome_utente}: {msg}".encode(), server_address)
         chat_entry.delete(0, tk.END)
         aggiungi_chat(f"Tu: {msg}")
 
@@ -89,8 +95,6 @@ def ricevi():
                 coords = msg.split()[-1]
                 r, c = map(int, coords.split(','))
                 buttons[r][c].config(text=simbolo_mossa)
-            elif "|" in msg or "-" in msg:
-                pass
             elif msg.startswith("VITTORIA") or msg == "Pareggio!":
                 status_label.config(text=msg)
             elif msg.startswith("Vuoi giocare di nuovo?"):
@@ -109,11 +113,10 @@ def ricevi():
                 root.quit()
                 break
             elif msg.startswith("CHAT:"):
-                aggiungi_chat("Avversario: " + msg[5:])
+                aggiungi_chat(msg[5:])
         except:
             break
 
 threading.Thread(target=ricevi, daemon=True).start()
-
 root.mainloop()
 client_socket.close()

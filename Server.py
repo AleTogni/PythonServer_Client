@@ -7,6 +7,7 @@ server_socket.bind(server_address)
 print(f"Server UDP in ascolto su {server_address[0]}:{server_address[1]}")
 
 clients = []
+nomi = {}
 simboli = ['X', 'O']
 
 def check_vittoria(griglia, simbolo):
@@ -34,9 +35,12 @@ print("In attesa di due giocatori...")
 
 while len(clients) < 2:
     data, addr = server_socket.recvfrom(4096)
-    if addr not in clients:
+    msg = data.decode()
+    if addr not in clients and msg.startswith("NOME:"):
+        nome = msg[5:].strip()
         clients.append(addr)
-        print(f"Giocatore connesso: {addr}")
+        nomi[addr] = nome
+        print(f"{nome} connesso da {addr}")
         server_socket.sendto(f"Sei il giocatore {'X' if len(clients)==1 else 'O'}".encode(), addr)
 
 while True:
@@ -56,9 +60,8 @@ while True:
         msg = data.decode()
 
         if msg.startswith("CHAT:"):
-            # Invia all'altro client, NON a chi ha scritto
             destinatario = clients[1] if addr == clients[0] else clients[0]
-            server_socket.sendto(f"CHAT:{msg[5:]}".encode(), destinatario)
+            server_socket.sendto(f"{msg}".encode(), destinatario)
             continue
 
         try:
@@ -74,7 +77,8 @@ while True:
         invia_a_tutti(griglia_to_string(griglia))
 
         if check_vittoria(griglia, simbolo):
-            invia_a_tutti(f"VITTORIA di {simbolo}")
+            vincitore = nomi[current_client]
+            invia_a_tutti(f"VITTORIA di {vincitore}")
             break
         elif griglia_piena(griglia):
             invia_a_tutti("Pareggio!")
