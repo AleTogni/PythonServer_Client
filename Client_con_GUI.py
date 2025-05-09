@@ -1,23 +1,32 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
 import socket
 import threading
 
-# Connessione al server
+# Connessione
 server_address = ('127.0.0.1', 12345)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client_socket.sendto(b'Ciao, mi voglio connettere', server_address)
 simbolo = client_socket.recv(4096).decode()[-1]
 
-# GUI Setup
+# GUI
 root = tk.Tk()
 root.title(f"Tris - Giocatore {simbolo}")
-status_label = tk.Label(root, text="In attesa...", font=('Arial', 14))
-status_label.pack(pady=10)
 
-button_frame = tk.Frame(root)
+main_frame = tk.Frame(root)
+main_frame.pack(padx=10, pady=10)
+
+# GRIGLIA
+game_frame = tk.Frame(main_frame)
+game_frame.grid(row=0, column=0, padx=10)
+
+status_label = tk.Label(game_frame, text="In attesa...", font=('Arial', 14))
+status_label.pack()
+
+button_frame = tk.Frame(game_frame)
 button_frame.pack()
 
+buttons = []
 turno_mio = False
 
 def invia_mossa(r, c):
@@ -28,7 +37,6 @@ def invia_mossa(r, c):
         client_socket.sendto(f"{r},{c}".encode(), server_address)
         turno_mio = False
 
-buttons = []
 for i in range(3):
     row = []
     for j in range(3):
@@ -38,13 +46,38 @@ for i in range(3):
         row.append(btn)
     buttons.append(row)
 
+# CHAT
+chat_frame = tk.Frame(main_frame)
+chat_frame.grid(row=0, column=1, padx=10, sticky="n")
+
+chat_log = scrolledtext.ScrolledText(chat_frame, width=30, height=20, state='disabled', wrap='word')
+chat_log.pack(pady=(0, 5))
+
+chat_entry = tk.Entry(chat_frame, width=30)
+chat_entry.pack()
+
+def invia_chat(event=None):
+    msg = chat_entry.get()
+    if msg:
+        client_socket.sendto(f"CHAT:{msg}".encode(), server_address)
+        chat_entry.delete(0, tk.END)
+        aggiungi_chat(f"Tu: {msg}")
+
+def aggiungi_chat(msg):
+    chat_log['state'] = 'normal'
+    chat_log.insert(tk.END, msg + '\n')
+    chat_log['state'] = 'disabled'
+    chat_log.yview(tk.END)
+
+chat_entry.bind("<Return>", invia_chat)
+
+# Ricezione
 def ricevi():
     global turno_mio
     while True:
         try:
             data, _ = client_socket.recvfrom(4096)
             msg = data.decode()
-            print("Ricevuto:", msg)
 
             if msg == "TOCCA A TE":
                 turno_mio = True
@@ -75,9 +108,12 @@ def ricevi():
                 messagebox.showinfo("Fine", msg)
                 root.quit()
                 break
+            elif msg.startswith("CHAT:"):
+                aggiungi_chat("Avversario: " + msg[5:])
         except:
             break
 
 threading.Thread(target=ricevi, daemon=True).start()
+
 root.mainloop()
 client_socket.close()

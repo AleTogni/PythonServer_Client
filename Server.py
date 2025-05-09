@@ -53,8 +53,16 @@ while True:
         server_socket.sendto("ATTENDI".encode(), other_client)
 
         data, addr = server_socket.recvfrom(4096)
+        msg = data.decode()
+
+        if msg.startswith("CHAT:"):
+            # Invia all'altro client, NON a chi ha scritto
+            destinatario = clients[1] if addr == clients[0] else clients[0]
+            server_socket.sendto(f"CHAT:{msg[5:]}".encode(), destinatario)
+            continue
+
         try:
-            r, c = map(int, data.decode().split(","))
+            r, c = map(int, msg.split(","))
             if griglia[r][c] != " ":
                 server_socket.sendto("Mossa non valida".encode(), addr)
                 continue
@@ -74,7 +82,6 @@ while True:
 
         turno = 1 - turno
 
-    # Chiede se vogliono continuare
     invia_a_tutti("Vuoi giocare di nuovo? (S/N)")
 
     risposte = []
