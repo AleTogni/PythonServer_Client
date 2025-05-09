@@ -1,15 +1,13 @@
 import socket
 
-
-server_address = ('192.168.132.220', 12345)   # 192.168.81.220
+server_address = ('127.0.0.1', 12345)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind(server_address)
 
 print(f"Server UDP in ascolto su {server_address[0]}:{server_address[1]}")
 
 clients = []
-griglia = [[" " for _ in range(3)] for _ in range(3)]
-turno = 0  # 0 = client 1 (X), 1 = client 2 (O)
+simboli = ['X', 'O']
 
 def check_vittoria(griglia, simbolo):
     for i in range(3):
@@ -34,7 +32,6 @@ def griglia_to_string(griglia):
 
 print("In attesa di due giocatori...")
 
-# Fase connessione giocatori
 while len(clients) < 2:
     data, addr = server_socket.recvfrom(4096)
     if addr not in clients:
@@ -42,40 +39,53 @@ while len(clients) < 2:
         print(f"Giocatore connesso: {addr}")
         server_socket.sendto(f"Sei il giocatore {'X' if len(clients)==1 else 'O'}".encode(), addr)
 
-# Partita
-invia_a_tutti("Inizio partita!")
-
-simboli = ['X', 'O']
-
 while True:
-    current_client = clients[turno]
-    other_client = clients[1 - turno]
-    simbolo = simboli[turno]
+    griglia = [[" " for _ in range(3)] for _ in range(3)]
+    turno = 0
+    invia_a_tutti("Inizio partita!")
 
-    server_socket.sendto("TOCCA A TE".encode(), current_client)
-    server_socket.sendto("ATTENDI".encode(), other_client)
+    while True:
+        current_client = clients[turno]
+        other_client = clients[1 - turno]
+        simbolo = simboli[turno]
 
-    data, addr = server_socket.recvfrom(4096)
-    try:
-        r, c = map(int, data.decode().split(","))
-        if griglia[r][c] != " ":
-            server_socket.sendto("Mossa non valida".encode(), addr)
+        server_socket.sendto("TOCCA A TE".encode(), current_client)
+        server_socket.sendto("ATTENDI".encode(), other_client)
+
+        data, addr = server_socket.recvfrom(4096)
+        try:
+            r, c = map(int, data.decode().split(","))
+            if griglia[r][c] != " ":
+                server_socket.sendto("Mossa non valida".encode(), addr)
+                continue
+            griglia[r][c] = simbolo
+        except:
             continue
-        griglia[r][c] = simbolo
-    except:
-        continue
 
-    # Stampa la griglia aggiornata e invia a tutti i client
-    invia_a_tutti(f"Mossa {simbolo} in {r},{c}")
-    invia_a_tutti(griglia_to_string(griglia))
+        invia_a_tutti(f"Mossa {simbolo} in {r},{c}")
+        invia_a_tutti(griglia_to_string(griglia))
 
-    if check_vittoria(griglia, simbolo):
-        invia_a_tutti(f"VITTORIA di {simbolo}")
+        if check_vittoria(griglia, simbolo):
+            invia_a_tutti(f"VITTORIA di {simbolo}")
+            break
+        elif griglia_piena(griglia):
+            invia_a_tutti("Pareggio!")
+            break
+
+        turno = 1 - turno
+
+    # Chiede se vogliono continuare
+    invia_a_tutti("Vuoi giocare di nuovo? (S/N)")
+
+    risposte = []
+    while len(risposte) < 2:
+        data, addr = server_socket.recvfrom(4096)
+        risposta = data.decode().strip().upper()
+        if risposta in ['S', 'N']:
+            risposte.append(risposta)
+
+    if risposte != ['S', 'S']:
+        invia_a_tutti("Fine partita. Grazie per aver giocato!")
         break
-    elif griglia_piena(griglia):
-        invia_a_tutti("Pareggio!")
-        break
-
-    turno = 1 - turno
 
 server_socket.close()
